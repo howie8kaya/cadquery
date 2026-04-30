@@ -99,61 +99,10 @@ class Vector:
         return f"Vector({self.x:.6g}, {self.y:.6g}, {self.z:.6g})"
 
     def angle_between(self, other: "Vector") -> float:
-        """Return the angle in degrees between this vector and *other*."""
+        """Return the angle in degrees between this vector and another.
+
+        Returns a value in [0, 180]. I find degrees more intuitive than
+        radians for most CAD work, so converting here instead of returning
+        raw radians like the OCC method does.
+        """
         return math.degrees(self._wrapped.Angle(other._wrapped))
-
-    def project_to_plane(self, plane: "Plane") -> "Vector":
-        """Project this vector onto *plane*, returning a new Vector."""
-        normal = plane.z_dir
-        return self - normal * self.dot(normal)
-
-
-class Plane:
-    """An infinite plane defined by an origin and normal direction.
-
-    The x_dir and y_dir form an orthonormal basis on the plane.
-    """
-
-    def __init__(
-        self,
-        origin: Vector,
-        x_dir: Optional[Vector] = None,
-        normal: Vector = Vector(0, 0, 1),
-    ):
-        self.origin = origin
-        self.z_dir = normal.normalized()
-
-        if x_dir is None:
-            # Pick an arbitrary x direction perpendicular to the normal
-            if abs(self.z_dir.dot(Vector(0, 0, 1))) < 0.9:
-                x_dir = Vector(0, 0, 1).cross(self.z_dir).normalized()
-            else:
-                x_dir = Vector(1, 0, 0).cross(self.z_dir).normalized()
-
-        self.x_dir = x_dir.normalized()
-        self.y_dir = self.z_dir.cross(self.x_dir).normalized()
-
-    @classmethod
-    def XY(cls) -> "Plane":  # noqa: N802
-        return cls(Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, 0, 1))
-
-    @classmethod
-    def XZ(cls) -> "Plane":  # noqa: N802
-        return cls(Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, -1, 0))
-
-    @classmethod
-    def YZ(cls) -> "Plane":  # noqa: N802
-        return cls(Vector(0, 0, 0), Vector(0, 1, 0), Vector(1, 0, 0))
-
-    def to_gp_ax3(self) -> gp_Ax3:
-        return gp_Ax3(
-            self.origin.to_pnt(),
-            self.z_dir.to_dir(),
-            self.x_dir.to_dir(),
-        )
-
-    def __repr__(self) -> str:
-        return (
-            f"Plane(origin={self.origin}, "
-            f"x_dir={self.x_dir}, normal={self.z_dir})"
-        )
